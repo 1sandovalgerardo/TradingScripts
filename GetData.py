@@ -32,6 +32,11 @@ def parser_gs():
                         dest='path',
                         type=str,
                         help='Enter the path you with the data to be saved to.')
+    parser.add_argument('--ticker',
+                        dest='ticker',
+                        type=str,
+                        help='Enter the ticker you would like data for.',
+                        default=False)
     args = parser.parse_args()
     return args
     
@@ -52,7 +57,7 @@ def start_end_dates(startDate=None, endDate=None):
     if endDate:
         logging.info('end date supplied: {endDate}')
         year, month, day = endDate
-        endDate = datetime.date(year, month, day-1)
+        endDate = datetime.date(year, month, day)
     else:
         endDate = datetime.date.today()
     return (startDate, endDate)
@@ -63,12 +68,12 @@ def download_price_history_OHLC(ticker, startDate, endDate):
     ticker = ticker.upper()
     filePath = f'{ticker}.csv'
     try:
-        stockData = web.DataReader('SPY', 'yahoo', startDate, endDate)
+        stockData = web.DataReader(ticker, 'yahoo', startDate, endDate)
+        save_data(stockData, ticker)
     except Exception as error:
         logging.error(f'Ticker: {ticker} not valid')
         print(error)
         print(f'Ticker: {ticker} not valid')
-    save_data(stockData, ticker)
 
 def save_data(dataToSave, ticker):
     logging.info('save_data() called')
@@ -80,6 +85,7 @@ def save_data(dataToSave, ticker):
 
 def move_to_dir(dirToSave):
     logging.info('move_to_dir() called.')
+    logging.info(f'moving to dir: {dirToSave}')
     if dirToSave==None:
         return None
     if os.path.exists(dirToSave):
@@ -88,6 +94,7 @@ def move_to_dir(dirToSave):
         os.makedirs(dirToSave)
         os.chdir(dirToSave)
 
+# I need to change this structure to something that gets cd and uses that instead.
 def _get_tickers(tickerPath='/home/gerardo/Documents/Trading/Scripts/tickers_spy_holdings.csv'):
     logging.info('_get_tickers() called')
     tickers = []
@@ -102,13 +109,16 @@ def main():
     logging.info('main() called')
     Parser = parser_gs()
     saveTo = Parser.path
+    logging.info(f'saveto:{saveTo}')
     move_to_dir(saveTo)
-    print(os.getcwd())
-    startDate, endDate = start_end_dates(startDate=(2020, 1, 1))
+    startDate, endDate = start_end_dates(startDate=(2000, 1, 1),
+                                         endDate=(2020,9,1))
     tickers = _get_tickers()
-    startDate, endDate = start_end_dates()
-    for sym in tickers:
-        download_price_history_OHLC(sym, startDate, endDate)
+    if Parser.ticker:
+        download_price_history_OHLC(Parser.ticker.upper(), startDate, endDate)
+    else:   
+        for sym in tickers:
+            download_price_history_OHLC(sym, startDate, endDate)
 
 
 
